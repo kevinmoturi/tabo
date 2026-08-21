@@ -1,0 +1,5 @@
+- [ ] Create `device_admin.xml` resource
+- [ ] Create `MyDeviceAdminReceiver.kt`
+- [ ] Modify `UnlockAttemptModule.kt` (Add failure logging and Admin management)
+- [ ] Update `AndroidManifest.xml` (Register Receiver and Metadata)
+- [ ] Verify build and code quality

@@ -1,0 +1,138 @@
+/* ============================================================
+   TABO — Design tokens
+   Colour values sampled directly from the supplied lens photo.
+   Dark-first. Light theme is the accessible/daylight variant.
+   ============================================================ */
+
+:root {
+  /* ---- Brand core (sampled from the lens) ---- */
+  --tabo-blue:          #2B37FF; /* lens core, most saturated point of the photo */
+  --tabo-blue-bright:   #4C5BFF; /* inner ring — hover / pressed / focus */
+  --tabo-blue-text:     #93A0FF; /* the only blue safe as TEXT on near-black */
+  --tabo-blue-deep:     #010767; /* outer well of the lens — deep fills, gradients */
+  --tabo-violet:        #7C6BD6; /* upper flare of the lens — secondary accent, sparing */
+  --tabo-mist:          #92C5D8; /* the trailing translucent circles — telemetry / ping */
+  --tabo-mist-soft:     #C1DDE9;
+  --tabo-ink:           #06070A; /* barrel black — discreteness */
+
+  /* ---- Semantic ---- */
+  --ok:      #22C58B; /* protected, delivered, paid */
+  --warn:    #F2A83B; /* subscription expiring, permission missing */
+  --alert:   #FF4256; /* intruder detected, theft event */
+
+  /* ---- Radii ---- */
+  --r-xs: 8px;  --r-sm: 12px; --r-md: 16px;
+  --r-lg: 22px; --r-xl: 28px; --r-full: 999px;
+
+  /* ---- Spacing (4pt base) ---- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+
+  /* ---- Type ----
+     Aharoni is the brand face (from tabo font.docx). It is a single-weight
+     display cut, so it is used for the wordmark, numerals and headings only.
+     Archivo Black is the libre stand-in that renders when Aharoni is absent
+     (it is not installed on Android). Body copy uses a UI face for legibility
+     at 13-15px and for Swahili string lengths. */
+  --font-display: "Aharoni", "Archivo Black", "Arial Black", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --t-display:   34px/1.05  var(--font-display);
+  --t-h1:        26px/1.15  var(--font-display);
+  --t-h2:        20px/1.2   var(--font-display);
+  --t-h3:        17px/1.3   var(--font-display);
+  --t-body:      15px/1.5   var(--font-ui);
+  --t-body-sm:   13px/1.45  var(--font-ui);
+  --t-label:     12px/1.3   var(--font-ui);
+  --t-mono-num:  15px/1.3   ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Swahili runs 15-25% longer than English: buttons and list rows must flex.
+     Never fix the height of a component that holds translated copy. */
+  --swahili-flex: 1.25;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --dur-fast: 140ms; --dur: 220ms; --dur-slow: 420ms;
+}
+
+/* ================= DARK (default) ================= */
+:root, [data-theme="dark"] {
+  --bg:            #07080C;
+  --surface:       #10131C;
+  --surface-2:     #181C28;
+  --surface-3:     #212636;
+  --border:        #262C3B;
+  --border-strong: #38405A;
+
+  --text:   #F3F5FB;
+  --text-2: #A2AAC0;
+  --text-3: #8A93A8;   /* lightened so 12px fine print clears AA on every surface */
+
+  --ok-fg:    var(--ok);    /* on dark the fill colours are already legible as text */
+  --warn-fg:  var(--warn);
+  --alert-fg: var(--alert);
+  --alert-btn: var(--alert);
+  --mist-fg:  var(--tabo-mist);
+
+  --brand:        var(--tabo-blue);
+  --brand-hover:  var(--tabo-blue-bright);
+  --on-brand:     #FFFFFF;
+  --brand-onsurf: var(--tabo-blue-text); /* blue for text/icons on dark */
+
+  --alert-wash: rgba(255, 66, 86, .14);
+  --ok-wash:    rgba(34, 197, 139, .14);
+  --brand-wash: rgba(43, 55, 255, .16);
+  --mist-wash:  rgba(146, 197, 216, .12);
+
+  --map-bg:    #0B0F17;
+  --map-block: #111725;
+  --map-road:  #232C3E;
+  --map-road2: #1B2231;
+  --map-hiway: #2E3950;
+  --map-label: #3B4557;
+  --glow-brand: 0 0 0 1px rgba(76,91,255,.28), 0 10px 34px -12px rgba(43,55,255,.55);
+  --shadow:     0 8px 28px -10px rgba(0,0,0,.8);
+  --scrim:      rgba(4,5,8,.72);
+}
+
+/* ================= LIGHT (daylight / accessibility) ================= */
+[data-theme="light"] {
+  --bg:            #FFFFFF;
+  --surface:       #F4F6FB;
+  --surface-2:     #EAEEF7;
+  --surface-3:     #DFE5F1;
+  --border:        #DCE2EE;
+  --border-strong: #B9C2D6;
+
+  --text:   #0A0C13;
+  --text-2: #4C5570;
+  --text-3: #5C6580;   /* darkened for AA on white and on --surface-2 */
+
+  /* On light surfaces the saturated semantic colours fail AA as text, so text
+     and icons use these darker cuts while the originals stay for fills/dots. */
+  --ok-fg:     #0B7A50;
+  --warn-fg:   #8A5605;
+  --alert-fg:  #C40F2B;
+  --alert-btn: #C40F2B;
+  --mist-fg:   #2F6B85;
+
+  --brand:        #1D28D6; /* darkened so white text on it clears AA */
+  --brand-hover:  #2B37FF;
+  --on-brand:     #FFFFFF;
+  --brand-onsurf: #1B25C4; /* blue as text on white */
+
+  --alert-wash: rgba(255, 66, 86, .10);
+  --ok-wash:    rgba(34, 197, 139, .12);
+  --brand-wash: rgba(43, 55, 255, .08);
+  --mist-wash:  rgba(78, 143, 168, .10);
+
+  --map-bg:    #EDF1F7;
+  --map-block: #E1E7F0;
+  --map-road:  #FFFFFF;
+  --map-road2: #F6F8FC;
+  --map-hiway: #FFE9B8;
+  --map-label: #9BA5BA;
+  --glow-brand: 0 0 0 1px rgba(43,55,255,.18), 0 10px 28px -14px rgba(43,55,255,.35);
+  --shadow:     0 6px 20px -10px rgba(16,24,48,.28);
+  --scrim:      rgba(10,12,19,.45);
+}

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 618.7 200" width="618.7" height="200" role="img" aria-label="Tabo"><title>Tabo</title><g transform="translate(0,0) scale(0.390625)">
+  
+  <defs>
+    <!-- barrel: matte near-black, light falling from upper left as in the photo -->
+    <linearGradient id="barrel" x1="0.18" y1="0.06" x2="0.82" y2="0.96">
+      <stop offset="0"    stop-color="#3A3D45"/>
+      <stop offset="0.28" stop-color="#1B1D23"/>
+      <stop offset="0.62" stop-color="#0C0D11"/>
+      <stop offset="1"    stop-color="#191C22"/>
+    </linearGradient>
+    <!-- machined rim highlight, strongest lower-right, exactly as the photo -->
+    <linearGradient id="rim" x1="0.1" y1="0.1" x2="0.9" y2="0.9">
+      <stop offset="0"    stop-color="#8E939E" stop-opacity="0.85"/>
+      <stop offset="0.35" stop-color="#2A2D34" stop-opacity="0.35"/>
+      <stop offset="0.72" stop-color="#C7CBD4" stop-opacity="0.95"/>
+      <stop offset="1"    stop-color="#4A4E57" stop-opacity="0.7"/>
+    </linearGradient>
+    <!-- the glass: white-lavender core out to the deep well -->
+    <radialGradient id="glass" cx="0.44" cy="0.48" r="0.62">
+      <stop offset="0"    stop-color="#F2F3FF"/>
+      <stop offset="0.09" stop-color="#C8C7FF"/>
+      <stop offset="0.20" stop-color="#4C5BFF"/>
+      <stop offset="0.42" stop-color="#2B37FF"/>
+      <stop offset="0.68" stop-color="#111C9E"/>
+      <stop offset="0.88" stop-color="#040A52"/>
+      <stop offset="1"    stop-color="#02052C"/>
+    </radialGradient>
+    <!-- violet flare across the top-right of the glass -->
+    <radialGradient id="flare" cx="0.72" cy="0.24" r="0.55">
+      <stop offset="0"   stop-color="#9E8CE8" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#7C6BD6" stop-opacity="0.18"/>
+      <stop offset="1"   stop-color="#7C6BD6" stop-opacity="0"/>
+    </radialGradient>
+    <!-- soft inner shadow where glass meets barrel -->
+    <radialGradient id="wall" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.74" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000000" stop-opacity="0.62"/>
+    </radialGradient>
+    <clipPath id="glassClip"><circle cx="256" cy="256" r="182"/></clipPath>
+  </defs>
+
+  <!-- barrel -->
+  <circle cx="256" cy="256" r="252" fill="url(#barrel)"/>
+  <circle cx="256" cy="256" r="252" fill="none" stroke="url(#rim)" stroke-width="9"/>
+  <circle cx="256" cy="256" r="228" fill="none" stroke="#07080B" stroke-width="16" opacity="0.9"/>
+  <circle cx="256" cy="256" r="212" fill="none" stroke="url(#rim)" stroke-width="7" opacity="0.55"/>
+  <circle cx="256" cy="256" r="196" fill="#06070A"/>
+
+  <!-- glass -->
+  <g clip-path="url(#glassClip)">
+    <circle cx="256" cy="256" r="182" fill="url(#glass)"/>
+    <circle cx="256" cy="256" r="182" fill="url(#flare)"/>
+    <!-- concentric ripples: the lens's own rings, thinning toward the core -->
+    <g fill="none" stroke="#DCE0FF" stroke-linecap="round">
+      <circle cx="252" cy="258" r="158" stroke-width="3.5" opacity="0.16"/>
+      <circle cx="250" cy="258" r="128" stroke-width="3.2" opacity="0.22"/>
+      <circle cx="248" cy="257" r="100" stroke-width="3.0" opacity="0.28"/>
+      <circle cx="247" cy="256" r="74"  stroke-width="2.6" opacity="0.34"/>
+      <circle cx="246" cy="255" r="50"  stroke-width="2.2" opacity="0.40"/>
+    </g>
+    <!-- the specular core. The photo's own highlight is a keyhole silhouette —
+         kept exactly that way: the mark says "locked" without drawing a padlock. -->
+    <g fill="#FFFFFF">
+      <path d="M246 216c14.4 0 26 11.9 26 26.6 0 8.6-4 16.2-10.2 21l9.6 26.9c1.6 4.6-1.7 9.5-6.5 9.5h-37.8c-4.8 0-8.2-4.9-6.5-9.5l9.6-26.8c-6.3-4.8-10.4-12.5-10.4-21.1 0-14.7 11.9-26.6 26.2-26.6z" opacity="0.97"/>
+      <ellipse cx="246" cy="241" rx="10" ry="11" fill="#8E99FF" opacity="0.30"/>
+    </g>
+    <circle cx="256" cy="256" r="182" fill="url(#wall)"/>
+  </g>
+  <circle cx="256" cy="256" r="182" fill="none" stroke="#000000" stroke-width="5" opacity="0.55"/>
+</g><g transform="translate(254.00,145.00)"><g fill="#F3F5FB"><path transform="translate(0.000,0) scale(0.13663,-0.13663)" d="M470 512V0H249V512H23V688H695V512Z"/><path transform="translate(96.186,0) scale(0.13663,-0.13663)" d="M594 368V162Q594 145 602.0 134.0Q610 123 626 123H662V8Q659 6 646.5 1.5Q634 -3 611.0 -7.5Q588 -12 558 -12Q500 -12 462.5 5.5Q425 23 411 54Q373 24 326.0 6.0Q279 -12 216 -12Q30 -12 30 136Q30 213 71.5 253.5Q113 294 191.0 309.0Q269 324 395 324V350Q395 381 373.5 397.0Q352 413 318 413Q287 413 264.5 402.0Q242 391 242 367V363H46Q45 368 45 377Q45 452 116.5 496.0Q188 540 321 540Q442 540 518.0 499.5Q594 459 594 368ZM229 162Q229 112 297 112Q336 112 365.5 133.0Q395 154 395 185V230Q310 230 269.5 211.5Q229 193 229 162Z"/><path transform="translate(184.858,0) scale(0.13663,-0.13663)" d="M408 540Q515 540 573.0 470.5Q631 401 631 265Q631 128 573.0 58.0Q515 -12 408 -12Q298 -12 240 75L223 0H61V725H260V479Q317 540 408 540ZM258 280V247Q258 197 280.0 166.0Q302 135 346 135Q432 135 432 237V290Q432 393 346 393Q302 393 280.0 361.5Q258 330 258 280Z"/><path transform="translate(273.529,0) scale(0.13663,-0.13663)" d="M631 264Q631 129 551.5 58.5Q472 -12 333 -12Q194 -12 115.0 58.0Q36 128 36 264Q36 400 115.0 470.0Q194 540 333 540Q472 540 551.5 469.5Q631 399 631 264ZM235 292V235Q235 123 333 123Q432 123 432 235V292Q432 405 333 405Q235 405 235 292Z"/></g></g></svg>
