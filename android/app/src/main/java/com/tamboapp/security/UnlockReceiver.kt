@@ -1,4 +1,4 @@
-package com.tabo.security
+package com.tamboapp.security
 
 import android.content.BroadcastReceiver
 import android.content.Context
