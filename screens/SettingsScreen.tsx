@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -8,17 +9,44 @@ import { TaboButton } from '../components/atoms/TaboButton';
 import { TaboCard } from '../components/atoms/TaboCard';
 import { TaboText } from '../components/atoms/TaboText';
 import { SettingsSection } from '../components/organisms/SettingsSection';
+import { useSession } from '../src/hooks/useSession';
+import { useAuth } from '../src/redux/hooks';
+import { useMeQuery } from '../src/redux/services/auth';
+import { showSuccess } from '../src/utils/snackbar';
 import { openLocationSettings } from '../src/utils/UnlockLogger';
 import { dark, spacing } from '../src/theme';
 import type { MainTabParamList, RootStackParamList } from '../src/types/navigation';
 
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+
 type SettingsNav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Settings'>,
-  NativeStackNavigationProp<RootStackParamList>
+  RootNav
 >;
 
 export function SettingsScreen() {
   const navigation = useNavigation<SettingsNav>();
+  const { user: storedUser, isAuthenticated } = useAuth();
+  const { signOut } = useSession();
+  const [signingOut, setSigningOut] = useState(false);
+
+  // The slice holds whatever the last login/bootstrap saw; this keeps the
+  // header honest if the profile changed on another device.
+  const { data } = useMeQuery(undefined, { skip: !isAuthenticated });
+  const user = data?.user ?? storedUser;
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    showSuccess('Signed out.');
+    // The tab navigator cannot host 'Auth' — the reset has to land on the root
+    // stack so the signed-in tabs are dropped rather than stacked behind login.
+    const root = navigation.getParent<RootNav>();
+    (root ?? navigation).reset({
+      index: 0,
+      routes: [{ name: 'Auth', params: { screen: 'Login' } }],
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -28,10 +56,10 @@ export function SettingsScreen() {
         </TaboText>
         <TaboCard style={styles.profile}>
           <TaboText variant="h2" color={dark.text}>
-            Tabo user
+            {user?.name ?? 'Tabo user'}
           </TaboText>
           <TaboText variant="body-sm" color={dark.text3}>
-            user@example.com
+            {user?.email ?? 'Not signed in'}
           </TaboText>
         </TaboCard>
         <SettingsSection
@@ -61,6 +89,12 @@ export function SettingsScreen() {
           title="Account"
           rows={[
             {
+              icon: 'User',
+              label: 'Auth details',
+              value: 'Profile, sessions and sign-in info',
+              onPress: () => navigation.navigate('Account'),
+            },
+            {
               icon: 'CreditCard',
               label: 'Subscription',
               value: 'Free plan',
@@ -69,15 +103,21 @@ export function SettingsScreen() {
             {
               icon: 'Shield',
               label: 'Security',
-              onPress: () => {},
+              onPress: () => navigation.navigate('Account'),
             },
           ]}
         />
         <View style={styles.footer}>
           <TaboButton
             variant="alert"
-            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}>
-            Sign out
+            disabled={signingOut}
+            leftIcon={
+              signingOut ? (
+                <ActivityIndicator size="small" color={dark.onBrand} />
+              ) : undefined
+            }
+            onPress={handleSignOut}>
+            {signingOut ? 'Signing out…' : 'Sign out'}
           </TaboButton>
         </View>
       </ScrollView>

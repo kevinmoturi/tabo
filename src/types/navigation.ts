@@ -23,6 +23,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   Alert: { eventId?: string } | undefined;
   Permissions: undefined;
+  Account: undefined;
 };
 
 export type RootStackProps<T extends keyof RootStackParamList> =

@@ -3,9 +3,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider } from 'react-redux';
 import * as LucideIcons from 'lucide-react-native';
 import { TaboIcon } from './components/atoms/TaboIcon';
 import { useUnlockListener } from './src/hooks/useUnlockListener';
+import { store } from './src/redux/store';
 import { dark } from './src/theme';
 import type {
   AuthStackParamList,
@@ -26,6 +28,7 @@ import { AlertScreen } from './screens/AlertScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { PlansScreen } from './screens/PlansScreen';
 import { PermissionsScreen } from './screens/PermissionsScreen';
+import { AccountScreen } from './screens/AccountScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -45,6 +48,7 @@ const ROOT_SCREENS: Array<{
   { name: 'Main', component: MainTabs },
   { name: 'Alert', component: AlertScreen },
   { name: 'Permissions', component: PermissionsScreen },
+  { name: 'Account', component: AccountScreen },
 ];
 
 const AUTH_SCREENS: Array<{
@@ -147,8 +151,9 @@ function RootNavigator() {
   );
 }
 
-export default function App() {
+function AppShell() {
   const isDarkMode = useColorScheme() === 'dark';
+  // Lives inside the Provider so listeners can reach the store.
   useUnlockListener();
 
   return (
@@ -158,5 +163,13 @@ export default function App() {
         <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <AppShell />
+    </Provider>
   );
 }

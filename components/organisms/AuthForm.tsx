@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { TaboButton } from '../atoms/TaboButton';
 import { TaboLogo } from '../atoms/TaboLogo';
 import { TaboText } from '../atoms/TaboText';
@@ -9,19 +9,77 @@ import { dark, spacing } from '../../src/theme';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
-interface AuthFormProps {
-  mode: AuthMode;
-  onSubmit: (email: string, password: string) => void;
-  onToggleMode: (mode: AuthMode) => void;
+export interface AuthFormValues {
+  name: string;
+  email: string;
+  password: string;
 }
 
-export function AuthForm({ mode, onSubmit, onToggleMode }: AuthFormProps) {
+interface AuthFormProps {
+  mode: AuthMode;
+  onSubmit: (values: AuthFormValues) => void;
+  onToggleMode: (mode: AuthMode) => void;
+  loading?: boolean;
+}
+
+type FieldErrors = Partial<Record<keyof AuthFormValues, string>>;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function AuthForm({
+  mode,
+  onSubmit,
+  onToggleMode,
+  loading = false,
+}: AuthFormProps) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   const isLogin = mode === 'login';
   const isSignup = mode === 'signup';
   const isForgot = mode === 'forgot';
+
+  // Mirrors the server's auth.schema so obvious mistakes never cost a request.
+  const validate = (): FieldErrors => {
+    const next: FieldErrors = {};
+
+    if (isSignup && !name.trim()) {
+      next.name = 'Name is required.';
+    }
+    if (!email.trim()) {
+      next.email = 'Email is required.';
+    } else if (!EMAIL_PATTERN.test(email.trim())) {
+      next.email = 'Enter a valid email address.';
+    }
+    if (!isForgot) {
+      if (!password) {
+        next.password = 'Password is required.';
+      } else if (isSignup && password.length < 8) {
+        next.password = 'Password must be at least 8 characters.';
+      }
+    }
+
+    return next;
+  };
+
+  const handleSubmit = () => {
+    const found = validate();
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      return;
+    }
+    onSubmit({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password,
+    });
+  };
+
+  const clearError = (field: keyof AuthFormValues) => {
+    setErrors(prev => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
 
   return (
     <View style={styles.container}>
@@ -37,14 +95,39 @@ export function AuthForm({ mode, onSubmit, onToggleMode }: AuthFormProps) {
             : 'Enter your email and we will send a reset link.'}
       </TaboText>
 
+      {isSignup ? (
+        <FormField
+          label="Name"
+          leftIcon="User"
+          placeholder="Your name"
+          autoCapitalize="words"
+          textContentType="name"
+          value={name}
+          onChangeText={text => {
+            setName(text);
+            clearError('name');
+          }}
+          errorMessage={errors.name}
+          editable={!loading}
+          containerStyle={styles.field}
+        />
+      ) : null}
+
       <FormField
         label="Email"
         leftIcon="Mail"
         placeholder="you@example.com"
         keyboardType="email-address"
         autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="emailAddress"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={text => {
+          setEmail(text);
+          clearError('email');
+        }}
+        errorMessage={errors.email}
+        editable={!loading}
         containerStyle={styles.field}
       />
 
@@ -54,8 +137,19 @@ export function AuthForm({ mode, onSubmit, onToggleMode }: AuthFormProps) {
           leftIcon="Lock"
           placeholder="••••••••"
           secureTextEntry
+          autoCapitalize="none"
+          textContentType={isSignup ? 'newPassword' : 'password'}
           value={password}
-          onChangeText={setPassword}
+          onChangeText={text => {
+            setPassword(text);
+            clearError('password');
+          }}
+          errorMessage={errors.password}
+          helper={
+            isSignup && !errors.password ? 'At least 8 characters.' : undefined
+          }
+          editable={!loading}
+          onSubmitEditing={handleSubmit}
           containerStyle={styles.field}
         />
       ) : null}
@@ -71,9 +165,19 @@ export function AuthForm({ mode, onSubmit, onToggleMode }: AuthFormProps) {
       ) : null}
 
       <TaboButton
-        onPress={() => onSubmit(email, password)}
+        onPress={handleSubmit}
+        disabled={loading}
+        leftIcon={
+          loading ? <ActivityIndicator size="small" color={dark.onBrand} /> : undefined
+        }
         style={styles.submit}>
-        {isLogin ? 'Sign in' : isSignup ? 'Create account' : 'Send reset link'}
+        {loading
+          ? 'Please wait…'
+          : isLogin
+            ? 'Sign in'
+            : isSignup
+              ? 'Create account'
+              : 'Send reset link'}
       </TaboButton>
 
       {!isForgot ? (
