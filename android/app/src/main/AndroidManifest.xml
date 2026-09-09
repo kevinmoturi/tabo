@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Lets BootReceiver mark each power-on. Failed-unlock capture does not
+         depend on it: the system starts the process for the device-admin
+         broadcast regardless. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
       android:name=".MainApplication"
@@ -34,6 +38,40 @@
         android:exported="true">
         <intent-filter>
             <action android:name="android.intent.action.USER_PRESENT" />
+        </intent-filter>
+      </receiver>
+
+      <!--
+        Failed-unlock detection. BIND_DEVICE_ADMIN means only the system can
+        invoke it. directBootAware lets it run before the first unlock after a
+        reboot — the exact window in which a thief tries PINs — which is why
+        UnlockAttemptStore writes to device-protected storage.
+      -->
+      <receiver
+        android:name=".security.MyDeviceAdminReceiver"
+        android:permission="android.permission.BIND_DEVICE_ADMIN"
+        android:directBootAware="true"
+        android:exported="true">
+        <meta-data
+            android:name="android.app.device_admin"
+            android:resource="@xml/device_admin" />
+        <intent-filter>
+            <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            <action android:name="android.app.action.ACTION_PASSWORD_FAILED" />
+            <action android:name="android.app.action.ACTION_PASSWORD_SUCCEEDED" />
+        </intent-filter>
+      </receiver>
+
+      <receiver
+        android:name=".security.BootReceiver"
+        android:enabled="true"
+        android:directBootAware="true"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.BOOT_COMPLETED" />
+            <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
         </intent-filter>
       </receiver>
     </application>

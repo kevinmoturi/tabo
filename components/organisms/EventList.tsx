@@ -5,10 +5,10 @@ import { TaboText } from '../atoms/TaboText';
 import { EventRow } from '../molecules/EventRow';
 import { getDummyEvents, type DisplayEvent } from '../../src/data/dummyEvents';
 import {
-  clearUnlockEvents,
-  getUnlockEvents,
-  type UnlockEvent,
-} from '../../src/utils/UnlockLogger';
+  clearEvents,
+  getEvents,
+  type UnlockAttemptEvent,
+} from '../../src/utils/UnlockAttempts';
 import { dark, spacing } from '../../src/theme';
 
 interface EventListFooterProps {
@@ -30,10 +30,31 @@ function EventListFooter({ onRefresh, onClear }: EventListFooterProps) {
   );
 }
 
-function toDisplayEvent(event: UnlockEvent): DisplayEvent {
+const EVENT_LABELS: Record<UnlockAttemptEvent['type'], string> = {
+  UNLOCK_FAILED: 'Failed unlock attempt',
+  UNLOCK_SUCCEEDED: 'Unlocked',
+  ADMIN_ENABLED: 'Protection turned on',
+  ADMIN_DISABLED: 'Protection turned off',
+  BOOT: 'Phone switched on',
+};
+
+const EVENT_TONES: Record<UnlockAttemptEvent['type'], DisplayEvent['status']> = {
+  UNLOCK_FAILED: 'alert',
+  UNLOCK_SUCCEEDED: 'ok',
+  ADMIN_ENABLED: 'ok',
+  ADMIN_DISABLED: 'warn',
+  BOOT: 'mist',
+};
+
+function toDisplayEvent(event: UnlockAttemptEvent): DisplayEvent {
+  const label = EVENT_LABELS[event.type] ?? event.type;
   return {
-    ...event,
-    status: event.latitude != null ? 'ok' : 'warn',
+    time: new Date(event.at).toISOString(),
+    status: EVENT_TONES[event.type] ?? 'mist',
+    label:
+      event.type === 'UNLOCK_FAILED' && event.attemptNo
+        ? `${label} (#${event.attemptNo} in that run)`
+        : label,
   };
 }
 
@@ -41,14 +62,15 @@ export function EventList() {
   const [events, setEvents] = useState<DisplayEvent[]>([]);
 
   const load = async () => {
-    const stored = await getUnlockEvents();
+    const stored = await getEvents();
     const realEvents = stored.map(toDisplayEvent);
+    // Dummy rows stay until the demo data is retired, but real events lead.
     const merged = [...realEvents, ...getDummyEvents()];
     setEvents(merged);
   };
 
   const handleClear = async () => {
-    await clearUnlockEvents();
+    await clearEvents();
     setEvents(getDummyEvents());
   };
 
@@ -67,6 +89,7 @@ export function EventList() {
           latitude={item.latitude}
           longitude={item.longitude}
           status={item.status}
+          label={item.label}
         />
       )}
       ListEmptyComponent={

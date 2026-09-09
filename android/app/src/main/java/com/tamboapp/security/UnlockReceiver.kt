@@ -3,43 +3,23 @@ package com.tamboapp.security
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.location.Location
-import android.location.LocationManager
 
+/**
+ * `ACTION_USER_PRESENT` fires on a **successful** unlock — the owner's own
+ * usage, not an attacker's. It is kept only so a successful unlock ends the
+ * current run of failed attempts on devices where device admin is off or the
+ * password-succeeded callback does not arrive.
+ *
+ * It deliberately no longer records location. Tagging every unlock with the
+ * owner's coordinates is a standing privacy cost that buys no theft evidence:
+ * a thief who unlocks the phone has the PIN, and the failed attempts that
+ * matter never reach this receiver at all.
+ */
 class UnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_USER_PRESENT) {
-            val location = getLastKnownLocation(context)
-            UnlockAttemptModule.onDeviceUnlocked(
-                context,
-                latitude = location?.latitude,
-                longitude = location?.longitude,
-                accuracy = location?.accuracy
-            )
+            UnlockAttemptStore.resetAttemptCounter(context)
+            UnlockAttemptModule.notifyJs()
         }
-    }
-
-    private fun getLastKnownLocation(context: Context): Location? {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            ?: return null
-
-        val providers = listOf(
-            LocationManager.GPS_PROVIDER,
-            LocationManager.NETWORK_PROVIDER,
-            LocationManager.PASSIVE_PROVIDER
-        )
-
-        var bestLocation: Location? = null
-        for (provider in providers) {
-            try {
-                val location = locationManager.getLastKnownLocation(provider)
-                if (location != null && (bestLocation == null || location.accuracy < bestLocation.accuracy)) {
-                    bestLocation = location
-                }
-            } catch (_: SecurityException) {
-                // permission not granted
-            }
-        }
-        return bestLocation
     }
 }

@@ -1,9 +1,13 @@
-import type { UnlockEvent } from '../utils/UnlockLogger';
-
 export type EventStatus = 'ok' | 'warn' | 'alert' | 'mist';
 
-export interface DisplayEvent extends UnlockEvent {
+export interface DisplayEvent {
+  /** ISO 8601. */
+  time: string;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
   status: EventStatus;
+  label?: string;
 }
 
 const now = new Date();

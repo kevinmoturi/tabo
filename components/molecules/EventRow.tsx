@@ -8,6 +8,8 @@ interface EventRowProps {
   latitude?: number;
   longitude?: number;
   status?: 'ok' | 'warn' | 'alert' | 'mist';
+  /** What happened. Falls back to coordinates for location-only rows. */
+  label?: string;
 }
 
 export function EventRow({
@@ -15,11 +17,13 @@ export function EventRow({
   latitude,
   longitude,
   status = 'ok',
+  label,
 }: EventRowProps) {
-  const coords =
-    latitude != null && longitude != null
+  const detail =
+    label ??
+    (latitude != null && longitude != null
       ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-      : 'Location unavailable';
+      : 'Location unavailable');
 
   return (
     <View style={styles.row}>
@@ -29,7 +33,7 @@ export function EventRow({
           {new Date(time).toLocaleString()}
         </TaboText>
         <TaboText variant="body-sm" color={dark.text3}>
-          {coords}
+          {detail}
         </TaboText>
       </View>
     </View>

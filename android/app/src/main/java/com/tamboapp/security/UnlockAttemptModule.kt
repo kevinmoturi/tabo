@@ -1,46 +1,44 @@
 package com.tamboapp.security
 
+import android.app.KeyguardManager
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import com.facebook.react.bridge.Callback
+import android.util.Log
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.modules.core.DeviceEventManagerModule
-import org.json.JSONArray
-import org.json.JSONObject
 
-class UnlockAttemptModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+/**
+ * The read side of the capture path. Native code writes lock-screen events
+ * without any help from JavaScript; this module lets the owner's UI read them,
+ * acknowledge what it has stored, and turn protection on.
+ */
+class UnlockAttemptModule(reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
 
     companion object {
-        private const val PREFS_NAME = "UnlockAttemptPrefs"
-        private const val PENDING_EVENTS_KEY = "pending_unlock_events"
-        private const val UNLOCK_EVENT = "UNLOCK_DETECTED"
+        private const val EVENT_NAME = "UNLOCK_EVENTS_CHANGED"
+        private const val TAG = "TamboUnlock"
 
         @Volatile
         private var instance: UnlockAttemptModule? = null
 
-        fun onDeviceUnlocked(
-            context: Context,
-            latitude: Double? = null,
-            longitude: Double? = null,
-            accuracy: Float? = null
-        ) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val events = JSONArray(prefs.getString(PENDING_EVENTS_KEY, "[]") ?: "[]")
-            events.put(
-                JSONObject().apply {
-                    put("time", System.currentTimeMillis())
-                    if (latitude != null) put("latitude", latitude)
-                    if (longitude != null) put("longitude", longitude)
-                    if (accuracy != null) put("accuracy", accuracy)
-                }
-            )
-            prefs.edit().putString(PENDING_EVENTS_KEY, events.toString()).apply()
-
-            instance?.emitUnlockEvent()
+        /**
+         * Nudges the UI if it happens to be running. Receivers must never
+         * depend on this: the event is already durable in
+         * [UnlockAttemptStore] by the time this is called, and on a stolen
+         * phone there is no JS runtime to nudge.
+         */
+        fun notifyJs() {
+            instance?.emitChanged()
         }
     }
 
@@ -50,29 +48,166 @@ class UnlockAttemptModule(reactContext: ReactApplicationContext) : ReactContextB
 
     override fun getName() = "UnlockAttemptModule"
 
-    @ReactMethod
-    fun getPendingEvents(callback: Callback) {
-        val prefs = reactApplicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val eventsJson = prefs.getString(PENDING_EVENTS_KEY, "[]") ?: "[]"
-        callback.invoke(null, eventsJson)
-        prefs.edit().remove(PENDING_EVENTS_KEY).apply()
-    }
-
-    @ReactMethod
-    fun clearPendingEvents() {
-        reactApplicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .remove(PENDING_EVENTS_KEY)
-            .apply()
-    }
-
-    @ReactMethod
-    fun openLocationSettings() {
-        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", reactApplicationContext.packageName, null)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    override fun invalidate() {
+        if (instance === this) {
+            instance = null
         }
-        reactApplicationContext.startActivity(intent)
+        super.invalidate()
+    }
+
+    /** Every stored event as a JSON array string, oldest first. */
+    @ReactMethod
+    fun getEvents(promise: Promise) {
+        try {
+            promise.resolve(UnlockAttemptStore.readAll(reactApplicationContext))
+        } catch (error: Throwable) {
+            promise.reject("read_failed", error)
+        }
+    }
+
+    /**
+     * Called only once JS has durably written the events. Anything not
+     * acknowledged is handed out again next time, so nothing is lost to a
+     * crash in between.
+     */
+    @ReactMethod
+    fun acknowledgeEvents(ids: ReadableArray, promise: Promise) {
+        try {
+            val seen = mutableSetOf<String>()
+            for (i in 0 until ids.size()) {
+                ids.getString(i)?.let { seen.add(it) }
+            }
+            UnlockAttemptStore.acknowledge(reactApplicationContext, seen)
+            promise.resolve(true)
+        } catch (error: Throwable) {
+            promise.reject("acknowledge_failed", error)
+        }
+    }
+
+    @ReactMethod
+    fun clearEvents(promise: Promise) {
+        try {
+            UnlockAttemptStore.clear(reactApplicationContext)
+            promise.resolve(true)
+        } catch (error: Throwable) {
+            promise.reject("clear_failed", error)
+        }
+    }
+
+    /**
+     * Whether failed unlocks are actually being recorded. Both flags have to
+     * be true, and either can change outside the app, so the UI re-reads this
+     * rather than remembering it.
+     *
+     * `deviceSecure` is the one that bites: with no PIN, pattern or password
+     * set there is no credential to fail, so `onPasswordFailed` never fires no
+     * matter how healthy the rest of the setup looks.
+     */
+    @ReactMethod
+    fun getProtectionStatus(promise: Promise) {
+        try {
+            val status: WritableMap = Arguments.createMap().apply {
+                putBoolean("deviceAdminActive", isAdminActive())
+                putBoolean("deviceSecure", isDeviceSecure())
+                putInt(
+                    "currentAttemptStreak",
+                    UnlockAttemptStore.currentAttemptStreak(reactApplicationContext),
+                )
+            }
+            promise.resolve(status)
+        } catch (error: Throwable) {
+            Log.e(TAG, "getProtectionStatus failed", error)
+            promise.reject("status_failed", error)
+        }
+    }
+
+    /**
+     * Opens the system device-admin consent screen and reports what actually
+     * happened, so the caller never claims a screen appeared when it did not.
+     * Consent itself arrives out of band — re-read [getProtectionStatus] when
+     * the app returns to the foreground.
+     */
+    @ReactMethod
+    fun requestDeviceAdmin(promise: Promise) {
+        try {
+            if (isAdminActive()) {
+                promise.resolve(
+                    Arguments.createMap().apply {
+                        putBoolean("opened", false)
+                        putBoolean("alreadyActive", true)
+                    },
+                )
+                return
+            }
+
+            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                putExtra(
+                    DevicePolicyManager.EXTRA_DEVICE_ADMIN,
+                    MyDeviceAdminReceiver.componentName(reactApplicationContext),
+                )
+                putExtra(
+                    DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                    "Tambo uses this to record failed unlock attempts if your phone is stolen.",
+                )
+            }
+
+            // Launch from the visible activity when there is one. Starting
+            // from the application context needs NEW_TASK and lands the
+            // consent screen in its own task, where returning to the app can
+            // drop the user somewhere unexpected.
+            val activity = reactApplicationContext.currentActivity
+            if (activity != null) {
+                activity.startActivity(intent)
+            } else {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                reactApplicationContext.startActivity(intent)
+            }
+
+            promise.resolve(
+                Arguments.createMap().apply {
+                    putBoolean("opened", true)
+                    putBoolean("alreadyActive", false)
+                },
+            )
+        } catch (error: Throwable) {
+            Log.e(TAG, "requestDeviceAdmin failed", error)
+            promise.reject("request_failed", error)
+        }
+    }
+
+    /** Where the user sets a PIN, pattern or password. */
+    @ReactMethod
+    fun openSecuritySettings(promise: Promise) {
+        try {
+            startExternal(Intent(Settings.ACTION_SECURITY_SETTINGS))
+            promise.resolve(true)
+        } catch (error: Throwable) {
+            Log.e(TAG, "openSecuritySettings failed", error)
+            promise.reject("open_failed", error)
+        }
+    }
+
+    @ReactMethod
+    fun openAppSettings() {
+        try {
+            startExternal(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", reactApplicationContext.packageName, null)
+                },
+            )
+        } catch (error: Throwable) {
+            Log.e(TAG, "openAppSettings failed", error)
+        }
+    }
+
+    private fun startExternal(intent: Intent) {
+        val activity = reactApplicationContext.currentActivity
+        if (activity != null) {
+            activity.startActivity(intent)
+        } else {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            reactApplicationContext.startActivity(intent)
+        }
     }
 
     @ReactMethod
@@ -85,13 +220,29 @@ class UnlockAttemptModule(reactContext: ReactApplicationContext) : ReactContextB
         // Required by NativeEventEmitter
     }
 
-    private fun emitUnlockEvent() {
+    private fun isAdminActive(): Boolean {
+        val dpm = reactApplicationContext
+            .getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
+            ?: return false
+        return dpm.isAdminActive(MyDeviceAdminReceiver.componentName(reactApplicationContext))
+    }
+
+    /** True only for PIN, pattern or password — swipe-to-unlock is not secure. */
+    private fun isDeviceSecure(): Boolean {
+        val keyguard = reactApplicationContext
+            .getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            ?: return false
+        return keyguard.isDeviceSecure
+    }
+
+    private fun emitChanged() {
         try {
             reactApplicationContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                ?.emit(UNLOCK_EVENT, null)
+                ?.emit(EVENT_NAME, null)
         } catch (_: Throwable) {
-            // React context may not be active; event is already persisted in SharedPreferences
+            // No live React context. The event is already on disk; the UI
+            // picks it up on next foreground.
         }
     }
 }

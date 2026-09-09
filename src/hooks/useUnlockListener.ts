@@ -1,17 +1,32 @@
 import { useEffect } from 'react';
-import {
-  startUnlockListener,
-  syncPendingNativeEvents,
-} from '../utils/UnlockLogger';
+import { AppState } from 'react-native';
+import { onEventsChanged, syncFromNative } from '../utils/UnlockAttempts';
 
 /**
- * Starts the native unlock listener and syncs any pending native events
- * on mount. Should be called once at the app root.
+ * Keeps the AsyncStorage mirror in step with the native capture store. Called
+ * once at the app root.
+ *
+ * Three triggers, because native captures while the UI is dead: on mount, on
+ * every return to the foreground, and on the live native event when the app
+ * happens to be open at the moment of capture.
  */
 export function useUnlockListener(): void {
   useEffect(() => {
-    syncPendingNativeEvents();
-    const stop = startUnlockListener();
-    return stop;
+    syncFromNative();
+
+    const stopListening = onEventsChanged(() => {
+      syncFromNative();
+    });
+
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        syncFromNative();
+      }
+    });
+
+    return () => {
+      stopListening();
+      subscription.remove();
+    };
   }, []);
 }
