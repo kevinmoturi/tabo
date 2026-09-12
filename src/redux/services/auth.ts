@@ -1,15 +1,19 @@
 import { api } from './index';
 import type {
   AuthResponse,
+  ChallengeResponse,
+  ChangePasswordBody,
   LoginBody,
   MeResponse,
+  OtpVerifyBody,
   RegisterBody,
+  RegisterResponse,
   SessionsResponse,
 } from '../types';
 
 const injectedEndpoints = api.injectEndpoints({
   endpoints: build => ({
-    register: build.mutation<AuthResponse, { body: RegisterBody }>({
+    register: build.mutation<RegisterResponse, { body: RegisterBody }>({
       query: ({ body }) => ({
         url: 'auth/register',
         method: 'POST',
@@ -25,6 +29,44 @@ const injectedEndpoints = api.injectEndpoints({
         body,
       }),
       invalidatesTags: ['Auth'],
+    }),
+
+    /**
+     * Completes whichever flow opened the challenge. Every purpose ends in a
+     * fresh token pair, which replaces the stored one.
+     */
+    verifyOtp: build.mutation<AuthResponse, { body: OtpVerifyBody }>({
+      query: ({ body }) => ({
+        url: 'auth/otp/verify',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Auth', 'Sessions'],
+    }),
+
+    resendOtp: build.mutation<void, { body: { challengeId: string } }>({
+      query: ({ body }) => ({
+        url: 'auth/otp/resend',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    /** Nothing changes until the returned challenge is verified. */
+    changePassword: build.mutation<
+      ChallengeResponse,
+      { body: ChangePasswordBody }
+    >({
+      query: ({ body }) => ({
+        url: 'auth/change-password',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    /** Opens a fresh signup challenge for an unverified, signed-in account. */
+    requestEmailVerification: build.mutation<ChallengeResponse, void>({
+      query: () => ({ url: 'auth/verify-email', method: 'POST' }),
     }),
 
     /** Public endpoint: revokes the session the refresh token belongs to. */
@@ -68,6 +110,10 @@ const injectedEndpoints = api.injectEndpoints({
 export const {
   useRegisterMutation,
   useLoginMutation,
+  useVerifyOtpMutation,
+  useResendOtpMutation,
+  useChangePasswordMutation,
+  useRequestEmailVerificationMutation,
   useLogoutMutation,
   useLogoutAllMutation,
   useMeQuery,

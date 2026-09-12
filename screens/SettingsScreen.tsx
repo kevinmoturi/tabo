@@ -103,7 +103,8 @@ export function SettingsScreen() {
             {
               icon: 'Shield',
               label: 'Security',
-              onPress: () => navigation.navigate('Account'),
+              value: 'Change your password',
+              onPress: () => navigation.navigate('ChangePassword'),
             },
           ]}
         />

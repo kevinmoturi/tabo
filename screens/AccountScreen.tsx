@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -13,12 +14,15 @@ import { TaboButton } from '../components/atoms/TaboButton';
 import { TaboCard } from '../components/atoms/TaboCard';
 import { TaboText } from '../components/atoms/TaboText';
 import { Header } from '../components/molecules/Header';
+import { EmailVerificationBanner } from '../components/organisms/EmailVerificationBanner';
 import { useSession } from '../src/hooks/useSession';
+import { useAppDispatch } from '../src/redux/hooks';
 import {
   useMeQuery,
   useRevokeSessionMutation,
   useSessionsQuery,
 } from '../src/redux/services/auth';
+import { setUser } from '../src/redux/slices/authSlice';
 import { getErrorMessage } from '../src/utils/apiError';
 import { showError, showSuccess } from '../src/utils/snackbar';
 import { dark, spacing } from '../src/theme';
@@ -49,6 +53,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export function AccountScreen() {
   const navigation = useNavigation<AccountNav>();
+  const dispatch = useAppDispatch();
   const { signOut } = useSession();
 
   const {
@@ -67,6 +72,14 @@ export function AccountScreen() {
 
   const user = meData?.user;
   const sessions = sessionData?.sessions ?? [];
+
+  // The verification nudge reads the slice; keep it honest with what the
+  // server just said so the badge and the banner never disagree.
+  useEffect(() => {
+    if (user) {
+      dispatch(setUser({ user }));
+    }
+  }, [dispatch, user]);
 
   const handleRevoke = async (id: string) => {
     try {
@@ -128,6 +141,8 @@ export function AccountScreen() {
               </View>
             </TaboCard>
 
+            <EmailVerificationBanner style={styles.verifyBanner} />
+
             <TaboText variant="label" color={dark.text3} style={styles.sectionTitle}>
               AUTH DETAILS
             </TaboText>
@@ -141,6 +156,15 @@ export function AccountScreen() {
               <DetailRow label="Member since" value={formatDate(user.createdAt)} />
               <DetailRow label="Last updated" value={formatDate(user.updatedAt)} />
             </TaboCard>
+
+            <TaboText variant="label" color={dark.text3} style={styles.sectionTitle}>
+              SECURITY
+            </TaboText>
+            <TaboButton
+              variant="secondary"
+              onPress={() => navigation.navigate('ChangePassword')}>
+              Change password
+            </TaboButton>
 
             <TaboText variant="label" color={dark.text3} style={styles.sectionTitle}>
               ACTIVE SESSIONS
@@ -217,6 +241,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginTop: spacing.xl,
     marginBottom: spacing.sm,
+  },
+  verifyBanner: {
+    marginTop: spacing.lg,
   },
   detailRow: {
     flexDirection: 'row',

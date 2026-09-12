@@ -16,6 +16,7 @@ import { TaboText } from '../components/atoms/TaboText';
 import { FeatureRow } from '../components/molecules/FeatureRow';
 import { StatCard } from '../components/molecules/StatCard';
 import { DashboardHeader } from '../components/organisms/DashboardHeader';
+import { EmailVerificationBanner } from '../components/organisms/EmailVerificationBanner';
 import { useUnlockAttempts } from '../src/hooks/useUnlockAttempts';
 import { useAuth } from '../src/redux/hooks';
 import {
@@ -104,6 +105,8 @@ export function HomeScreen() {
           protectedCount={protectionOn ? 1 : 0}
           alertCount={status.currentAttemptStreak}
         />
+
+        <EmailVerificationBanner style={styles.verifyBanner} />
 
         {!protectionOn ? (
           <View style={styles.section}>
@@ -249,6 +252,10 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  verifyBanner: {
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
   sectionTitle: {

@@ -34,6 +34,46 @@ export const useSession = () => {
     [dispatch],
   );
 
+  /**
+   * Swaps the stored session for the fresh pair every /otp/verify returns.
+   * The pair being replaced is revoked first (best effort — a password change
+   * has already killed it server-side, and logout is idempotent) so a verified
+   * signup does not leave its registration session alive for a month.
+   */
+  const adoptSession = useCallback(
+    async (response: AuthResponse) => {
+      const previous = await getRefreshToken();
+      if (previous && previous !== response.tokens.refreshToken) {
+        try {
+          await logout({ body: { refreshToken: previous } }).unwrap();
+        } catch (error) {
+          console.log('adoptSession', error);
+        }
+      }
+      await persistSession(response);
+    },
+    [logout, persistSession],
+  );
+
+  /**
+   * Revokes a session the user never entered — a login they backed out of
+   * before accepting the terms. Nothing was stored locally, so only the
+   * server-side refresh token needs invalidating; failure is tolerated for
+   * the same reason as in signOut.
+   */
+  const revokeSession = useCallback(
+    async (response: AuthResponse) => {
+      try {
+        await logout({
+          body: { refreshToken: response.tokens.refreshToken },
+        }).unwrap();
+      } catch (error) {
+        console.log('revokeSession', error);
+      }
+    },
+    [logout],
+  );
+
   const signOut = useCallback(async () => {
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
@@ -50,5 +90,5 @@ export const useSession = () => {
     dispatch(api.util.resetApiState());
   }, [dispatch, logout]);
 
-  return { persistSession, signOut };
+  return { persistSession, adoptSession, revokeSession, signOut };
 };

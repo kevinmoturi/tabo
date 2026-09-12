@@ -20,7 +20,9 @@ export function SignUpScreen() {
 
   const handleSubmit = async (values: AuthFormValues) => {
     try {
-      // Register starts a session immediately — no OTP step for email signup.
+      // Register starts the session straight away and opens the signup
+      // challenge; the code screen is next, but the account is usable even if
+      // the user defers it — Home keeps nudging until the email is verified.
       const response = await register({
         body: {
           name: values.name,
@@ -30,10 +32,19 @@ export function SignUpScreen() {
       }).unwrap();
 
       await persistSession(response);
-      showSuccess('Your Tabo account is ready.');
+      showSuccess('Your Tabo account is ready. Check your email for a code.');
       navigation.reset({
         index: 0,
-        routes: [{ name: 'Main', params: { screen: 'Home' } }],
+        routes: [
+          {
+            name: 'VerifyOtp',
+            params: {
+              challenge: response.challenge,
+              intent: 'register',
+              email: response.user.email ?? values.email,
+            },
+          },
+        ],
       });
     } catch (error) {
       showError(getErrorMessage(error, 'Could not create your account.'));

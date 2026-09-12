@@ -1,6 +1,21 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { OtpChallenge } from '../redux/types';
+
+/**
+ * Why a code is being collected. The server's challenge purpose is not
+ * enough on its own: registration and a later email verification both open a
+ * `signup` challenge but should land in different places afterwards.
+ */
+export type OtpIntent = 'register' | 'verify_email' | 'change_password';
+
+export type VerifyOtpParams = {
+  challenge: OtpChallenge;
+  intent: OtpIntent;
+  /** Where the code was sent, for the screen copy. */
+  email?: string;
+};
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -24,6 +39,8 @@ export type RootStackParamList = {
   Alert: { eventId?: string } | undefined;
   Permissions: undefined;
   Account: undefined;
+  ChangePassword: undefined;
+  VerifyOtp: VerifyOtpParams;
 };
 
 export type RootStackProps<T extends keyof RootStackParamList> =

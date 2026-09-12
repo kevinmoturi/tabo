@@ -25,6 +25,38 @@ export interface AuthResponse {
   tokens: AuthTokens;
 }
 
+export type OtpPurpose =
+  | 'signup'
+  | 'login'
+  | 'password_change'
+  | 'email_change';
+
+/** A pending 6-digit code; the next move is always /otp/verify. */
+export interface OtpChallenge {
+  challengeId: string;
+  purpose: OtpPurpose;
+  expiresInMinutes: number;
+}
+
+export interface ChallengeResponse {
+  challenge: OtpChallenge;
+}
+
+/** Register starts a session AND opens the signup challenge in one go. */
+export interface RegisterResponse extends AuthResponse {
+  challenge: OtpChallenge;
+}
+
+export interface OtpVerifyBody {
+  challengeId: string;
+  code: string;
+}
+
+export interface ChangePasswordBody {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface MeResponse {
   user: AuthUser;
 }

@@ -25,6 +25,7 @@
     "react-native-screens": "^4.27.0",
     "react-native-snackbar": "^3.0.1",
     "react-native-svg": "^15.15.5",
+    "react-native-webview": "^14.0.1",
     "react-redux": "^9.3.0"
   },
   "devDependencies": {
