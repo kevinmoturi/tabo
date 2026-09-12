@@ -63,9 +63,10 @@ const DEAD_CHALLENGE_CODES = new Set([
 
 /**
  * Collects the 6-digit code for whichever flow opened the challenge. Every
- * successful verify returns a fresh session that replaces the stored one;
- * where the user lands afterwards depends on the intent, not the server's
- * purpose (registration and a later email verification share `signup`).
+ * successful verify returns a fresh session that replaces the stored one and
+ * lands on Home. The intent still matters for copy and for what a burned
+ * challenge can do: an email flow can just ask for a new code, a password
+ * change has to be re-entered.
  */
 export function VerifyOtpScreen() {
   const navigation = useNavigation<VerifyOtpNav>();
@@ -73,7 +74,25 @@ export function VerifyOtpScreen() {
   const { intent, email } = params;
   const { adoptSession } = useSession();
 
-  const [challenge, setChallenge] = useState<OtpChallenge>(params.challenge);
+  const [challenge, setChallenge] = useState<OtpChallenge | undefined>(
+    params.challenge,
+  );
+
+  // Nothing to verify — reached with a missing challenge. Bail to somewhere
+  // sensible rather than render a screen that cannot succeed.
+  useEffect(() => {
+    if (challenge) {
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main', params: { screen: 'Home' } }],
+      });
+    }
+  }, [challenge, navigation]);
   const [code, setCode] = useState('');
   const [inlineError, setInlineError] = useState<string | null>(null);
   // Burned or expired: the only way forward is a brand-new challenge.
@@ -94,29 +113,20 @@ export function VerifyOtpScreen() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
+  // Every hook is above this line; the redirect effect handles navigation.
+  if (!challenge) {
+    return null;
+  }
+
+  /**
+   * Success always lands on Home with a clean stack: whatever screen opened
+   * the challenge (sign-up, account page, password form) is done with.
+   */
   const finish = () => {
-    switch (intent) {
-      case 'register':
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Main', params: { screen: 'Home' } }],
-        });
-        break;
-      case 'verify_email':
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        } else {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Main', params: { screen: 'Home' } }],
-          });
-        }
-        break;
-      case 'change_password':
-        // Pops back through the change-password form to the account page.
-        navigation.navigate('Account');
-        break;
-    }
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main', params: { screen: 'Home' } }],
+    });
   };
 
   const handleVerify = async (submitted: string) => {
@@ -180,14 +190,28 @@ export function VerifyOtpScreen() {
     }
   };
 
+  /** No session exists yet for a signup; signing in again issues a new code. */
+  const backToLogin = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Auth', params: { screen: 'Login' } }],
+    });
+  };
+
   /**
-   * A dead challenge for an email flow can be reopened here because the user
-   * is already signed in. A password change carries its pending password on
-   * the challenge, so that one has to be re-entered.
+   * A dead challenge is reopened differently per intent: a signed-in email
+   * verification can just ask for another code; a signup has no session, so
+   * logging in again is what issues one; a password change carries its
+   * pending password on the challenge, so that one has to be re-entered.
    */
   const handleRestart = async () => {
     if (intent === 'change_password') {
       navigation.goBack();
+      return;
+    }
+    if (intent === 'register') {
+      showInfo('Sign in again and we will send you a new code.');
+      backToLogin();
       return;
     }
     try {
@@ -206,10 +230,8 @@ export function VerifyOtpScreen() {
 
   const handleLater = () => {
     if (intent === 'register') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main', params: { screen: 'Home' } }],
-      });
+      showInfo('Your account is saved. Sign in whenever you are ready to verify.');
+      backToLogin();
     } else {
       navigation.goBack();
     }
@@ -222,7 +244,7 @@ export function VerifyOtpScreen() {
     <SafeAreaView style={styles.container}>
       <Header
         title={COPY[intent].title}
-        onBack={intent === 'change_password' ? () => navigation.goBack() : undefined}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -306,9 +328,7 @@ export function VerifyOtpScreen() {
                   <ActivityIndicator size="small" color={dark.onBrand} />
                 ) : undefined
               }>
-              {intent === 'change_password'
-                ? 'Start again'
-                : 'Send a new code'}
+              {intent === 'verify_email' ? 'Send a new code' : 'Start again'}
             </TaboButton>
           ) : (
             <TaboButton

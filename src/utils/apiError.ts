@@ -1,3 +1,5 @@
+import type { OtpChallenge } from '../redux/types';
+
 /**
  * The API's failure envelope is `{ code, message, details? }` (see the
  * backend's errorHandler). RTK Query wraps that in `error.data`, but transport
@@ -8,6 +10,8 @@ interface ApiErrorBody {
   code?: string;
   message?: string;
   details?: unknown;
+  /** Only on `email_unverified`: the signup challenge that completes it. */
+  challenge?: OtpChallenge;
 }
 
 export const getErrorMessage = (
@@ -48,4 +52,10 @@ export const getErrorMessage = (
 export const getErrorCode = (error: unknown): string | undefined => {
   const data = (error as { data?: ApiErrorBody } | undefined)?.data;
   return data && typeof data === 'object' ? data.code : undefined;
+};
+
+/** The challenge riding on a `403 email_unverified` login response. */
+export const getErrorChallenge = (error: unknown): OtpChallenge | undefined => {
+  const data = (error as { data?: ApiErrorBody } | undefined)?.data;
+  return data && typeof data === 'object' ? data.challenge : undefined;
 };

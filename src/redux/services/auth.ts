@@ -7,19 +7,18 @@ import type {
   MeResponse,
   OtpVerifyBody,
   RegisterBody,
-  RegisterResponse,
   SessionsResponse,
 } from '../types';
 
 const injectedEndpoints = api.injectEndpoints({
   endpoints: build => ({
-    register: build.mutation<RegisterResponse, { body: RegisterBody }>({
+    /** Opens the signup challenge; the first session comes from verifyOtp. */
+    register: build.mutation<ChallengeResponse, { body: RegisterBody }>({
       query: ({ body }) => ({
         url: 'auth/register',
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Auth'],
     }),
 
     login: build.mutation<AuthResponse, { body: LoginBody }>({

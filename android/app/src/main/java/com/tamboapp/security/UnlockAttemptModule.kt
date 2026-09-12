@@ -175,6 +175,30 @@ class UnlockAttemptModule(reactContext: ReactApplicationContext) :
         }
     }
 
+    /**
+     * Turns protection off by dropping Tambo's own device-admin grant. No
+     * system screen is involved; the receiver's onDisabled records an
+     * ADMIN_DISABLED event so the log shows when capture stopped. The system
+     * applies the removal asynchronously, so a status read immediately after
+     * can still say active — callers re-check.
+     */
+    @ReactMethod
+    fun removeDeviceAdmin(promise: Promise) {
+        try {
+            if (!isAdminActive()) {
+                promise.resolve(false)
+                return
+            }
+            val dpm = reactApplicationContext
+                .getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            dpm.removeActiveAdmin(MyDeviceAdminReceiver.componentName(reactApplicationContext))
+            promise.resolve(true)
+        } catch (error: Throwable) {
+            Log.e(TAG, "removeDeviceAdmin failed", error)
+            promise.reject("remove_failed", error)
+        }
+    }
+
     /** Where the user sets a PIN, pattern or password. */
     @ReactMethod
     fun openSecuritySettings(promise: Promise) {

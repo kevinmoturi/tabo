@@ -193,6 +193,37 @@ export const requestDeviceAdmin =
     return await UnlockAttemptModule.requestDeviceAdmin();
   };
 
+const sleep = (ms: number) =>
+  new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/**
+ * Turns protection off by giving up Tambo's device-admin grant. Android
+ * applies the removal asynchronously, so this waits (briefly) for the status
+ * to actually flip before resolving; the returned status is what the UI
+ * should show. Resolves false if nothing was active to begin with.
+ */
+export const removeDeviceAdmin = async (): Promise<boolean> => {
+  if (!isSupported()) {
+    throw new Error(
+      'Failed-unlock detection is only available on Android builds of Tambo.',
+    );
+  }
+  const removed: boolean = await UnlockAttemptModule.removeDeviceAdmin();
+  if (!removed) {
+    return false;
+  }
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const status = await getProtectionStatus();
+    if (!status.deviceAdminActive) {
+      return true;
+    }
+    await sleep(200);
+  }
+  // Still reported active after ~2s: the system will get there; the hook's
+  // foreground re-read catches up.
+  return true;
+};
+
 /** Opens system security settings, where a screen lock is set. */
 export const openSecuritySettings = async (): Promise<void> => {
   if (!isSupported()) {

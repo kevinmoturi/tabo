@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Platform,
   RefreshControl,
   ScrollView,
@@ -17,11 +18,14 @@ import { FeatureRow } from '../components/molecules/FeatureRow';
 import { StatCard } from '../components/molecules/StatCard';
 import { DashboardHeader } from '../components/organisms/DashboardHeader';
 import { EmailVerificationBanner } from '../components/organisms/EmailVerificationBanner';
+import { TermsSheet } from '../components/organisms/TermsSheet';
+import { useTermsGate } from '../src/hooks/useTermsGate';
 import { useUnlockAttempts } from '../src/hooks/useUnlockAttempts';
 import { useAuth } from '../src/redux/hooks';
 import {
   isProtectionActive,
   openSecuritySettings,
+  removeDeviceAdmin,
   requestDeviceAdmin,
 } from '../src/utils/UnlockAttempts';
 import { showError, showInfo, showSuccess } from '../src/utils/snackbar';
@@ -36,7 +40,9 @@ export function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
   const { user } = useAuth();
   const { failedAttempts, failedCount, status, refresh } = useUnlockAttempts();
+  const terms = useTermsGate();
   const [refreshing, setRefreshing] = useState(false);
+  const [disabling, setDisabling] = useState(false);
 
   const protectionOn = isProtectionActive(status);
   // Order matters: without a screen lock there is nothing to fail, so fixing
@@ -89,6 +95,35 @@ export function HomeScreen() {
     await refresh();
   };
 
+  const handleDisable = () => {
+    Alert.alert(
+      'Turn off protection?',
+      'Failed unlock attempts will no longer be recorded until you turn it back on.',
+      [
+        { text: 'Keep on', style: 'cancel' },
+        {
+          text: 'Turn off',
+          style: 'destructive',
+          onPress: async () => {
+            setDisabling(true);
+            try {
+              await removeDeviceAdmin();
+              showInfo('Protection is off.');
+            } catch (error) {
+              showError(
+                error instanceof Error
+                  ? error.message
+                  : 'Could not turn protection off.',
+              );
+            }
+            await refresh();
+            setDisabling(false);
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -136,7 +171,34 @@ export function HomeScreen() {
               </TaboButton>
             </TaboCard>
           </View>
-        ) : null}
+        ) : (
+          <View style={styles.section}>
+            <TaboCard style={styles.okCard}>
+              <View style={styles.statusRow}>
+                <TaboIcon name="ShieldCheck" size={24} color={dark.okFg} />
+                <TaboText
+                  variant="body"
+                  color={dark.okFg}
+                  style={styles.statusText}>
+                  Protection is on
+                </TaboText>
+              </View>
+              <TaboText
+                variant="body-sm"
+                color={dark.text3}
+                style={styles.cardBody}>
+                Failed PIN, pattern and password attempts are being recorded,
+                even while the app is closed.
+              </TaboText>
+              <TaboButton
+                variant="secondary"
+                disabled={disabling}
+                onPress={handleDisable}>
+                {disabling ? 'Turning off…' : 'Turn off protection'}
+              </TaboButton>
+            </TaboCard>
+          </View>
+        )}
 
         <View style={styles.stats}>
           <StatCard
@@ -233,6 +295,12 @@ export function HomeScreen() {
           />
         </View>
       </ScrollView>
+      <TermsSheet
+        visible={terms.visible}
+        busy={terms.busy}
+        onAgree={terms.agree}
+        onCancel={terms.decline}
+      />
     </SafeAreaView>
   );
 }
@@ -264,6 +332,10 @@ const styles = StyleSheet.create({
   warnCard: {
     backgroundColor: dark.warnWash,
     borderColor: semantic.warn,
+  },
+  okCard: {
+    backgroundColor: dark.okWash,
+    borderColor: semantic.ok,
   },
   statusRow: {
     flexDirection: 'row',

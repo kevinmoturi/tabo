@@ -38,12 +38,11 @@ export interface OtpChallenge {
   expiresInMinutes: number;
 }
 
+/**
+ * Envelope of every endpoint that opens a challenge — register included: no
+ * session exists until the signup code is verified.
+ */
 export interface ChallengeResponse {
-  challenge: OtpChallenge;
-}
-
-/** Register starts a session AND opens the signup challenge in one go. */
-export interface RegisterResponse extends AuthResponse {
   challenge: OtpChallenge;
 }
 

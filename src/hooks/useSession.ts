@@ -55,25 +55,6 @@ export const useSession = () => {
     [logout, persistSession],
   );
 
-  /**
-   * Revokes a session the user never entered — a login they backed out of
-   * before accepting the terms. Nothing was stored locally, so only the
-   * server-side refresh token needs invalidating; failure is tolerated for
-   * the same reason as in signOut.
-   */
-  const revokeSession = useCallback(
-    async (response: AuthResponse) => {
-      try {
-        await logout({
-          body: { refreshToken: response.tokens.refreshToken },
-        }).unwrap();
-      } catch (error) {
-        console.log('revokeSession', error);
-      }
-    },
-    [logout],
-  );
-
   const signOut = useCallback(async () => {
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
@@ -90,5 +71,5 @@ export const useSession = () => {
     dispatch(api.util.resetApiState());
   }, [dispatch, logout]);
 
-  return { persistSession, adoptSession, revokeSession, signOut };
+  return { persistSession, adoptSession, signOut };
 };

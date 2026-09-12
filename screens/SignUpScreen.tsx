@@ -4,7 +4,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../components/molecules/Header';
 import { AuthForm, type AuthFormValues } from '../components/organisms/AuthForm';
-import { useSession } from '../src/hooks/useSession';
 import { useRegisterMutation } from '../src/redux/services/auth';
 import { getErrorMessage } from '../src/utils/apiError';
 import { showError, showSuccess } from '../src/utils/snackbar';
@@ -16,14 +15,12 @@ type SignUpNav = NativeStackNavigationProp<RootStackParamList, 'Auth'>;
 export function SignUpScreen() {
   const navigation = useNavigation<SignUpNav>();
   const [register, { isLoading }] = useRegisterMutation();
-  const { persistSession } = useSession();
 
   const handleSubmit = async (values: AuthFormValues) => {
     try {
-      // Register starts the session straight away and opens the signup
-      // challenge; the code screen is next, but the account is usable even if
-      // the user defers it — Home keeps nudging until the email is verified.
-      const response = await register({
+      // Register only opens the signup challenge; the first session is
+      // issued when the emailed code is verified.
+      const { challenge } = await register({
         body: {
           name: values.name,
           email: values.email,
@@ -31,20 +28,11 @@ export function SignUpScreen() {
         },
       }).unwrap();
 
-      await persistSession(response);
-      showSuccess('Your Tabo account is ready. Check your email for a code.');
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'VerifyOtp',
-            params: {
-              challenge: response.challenge,
-              intent: 'register',
-              email: response.user.email ?? values.email,
-            },
-          },
-        ],
+      showSuccess('Almost there — check your email for a code.');
+      navigation.navigate('VerifyOtp', {
+        challenge,
+        intent: 'register',
+        email: values.email,
       });
     } catch (error) {
       showError(getErrorMessage(error, 'Could not create your account.'));
