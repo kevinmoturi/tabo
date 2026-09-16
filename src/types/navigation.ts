@@ -41,6 +41,8 @@ export type RootStackParamList = {
   Account: undefined;
   ChangePassword: undefined;
   VerifyOtp: VerifyOtpParams;
+  Buddies: undefined;
+  AddBuddy: undefined;
 };
 
 export type RootStackProps<T extends keyof RootStackParamList> =

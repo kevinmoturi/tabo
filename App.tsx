@@ -31,6 +31,8 @@ import { PermissionsScreen } from './screens/PermissionsScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { ChangePasswordScreen } from './screens/ChangePasswordScreen';
 import { VerifyOtpScreen } from './screens/VerifyOtpScreen';
+import { BuddiesScreen } from './screens/BuddiesScreen';
+import { AddBuddyScreen } from './screens/AddBuddyScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -53,6 +55,8 @@ const ROOT_SCREENS: Array<{
   { name: 'Account', component: AccountScreen },
   { name: 'ChangePassword', component: ChangePasswordScreen },
   { name: 'VerifyOtp', component: VerifyOtpScreen },
+  { name: 'Buddies', component: BuddiesScreen },
+  { name: 'AddBuddy', component: AddBuddyScreen },
 ];
 
 const AUTH_SCREENS: Array<{

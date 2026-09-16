@@ -17,6 +17,7 @@ import { TaboText } from '../components/atoms/TaboText';
 import { FeatureRow } from '../components/molecules/FeatureRow';
 import { StatCard } from '../components/molecules/StatCard';
 import { DashboardHeader } from '../components/organisms/DashboardHeader';
+import { BuddyInviteBanner } from '../components/organisms/BuddyInviteBanner';
 import { EmailVerificationBanner } from '../components/organisms/EmailVerificationBanner';
 import { TermsSheet } from '../components/organisms/TermsSheet';
 import { useTermsGate } from '../src/hooks/useTermsGate';
@@ -142,6 +143,7 @@ export function HomeScreen() {
         />
 
         <EmailVerificationBanner style={styles.verifyBanner} />
+        <BuddyInviteBanner style={styles.verifyBanner} />
 
         {!protectionOn ? (
           <View style={styles.section}>

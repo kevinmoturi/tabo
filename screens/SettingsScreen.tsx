@@ -95,6 +95,12 @@ export function SettingsScreen() {
               onPress: () => navigation.navigate('Account'),
             },
             {
+              icon: 'Users',
+              label: 'Buddies',
+              value: 'Who gets alerted if your phone is stolen',
+              onPress: () => navigation.navigate('Buddies'),
+            },
+            {
               icon: 'CreditCard',
               label: 'Subscription',
               value: 'Free plan',
